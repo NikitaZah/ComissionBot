@@ -121,11 +121,13 @@ def abuse_pairs(q: Queue, wasted_pairs: Queue):
         threads.append(Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs)))
         threads[-1].start()
 
-        if len(threading.enumerate()) > 100:
-            for i in tqdm(range(50), desc='waiting for old threads to finish'):
-                threads[i].join()
-
-            threads = threads[49:]
+        if len(threads) > 100:
+            try:
+                for i in tqdm(range(50), desc='waiting for old threads to finish'):
+                    threads[i].join()
+                threads = threads[49:]
+            except IndexError:
+                threads = []
 
         # for i in range(len(threads)-1, -1, -1):
         #     try:
