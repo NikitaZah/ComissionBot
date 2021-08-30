@@ -233,6 +233,7 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
                                 print(f'ATTENTION PLEASE!!!\ntruly consumed volume = {truly_consumed_volume}\n'
                                       f'offer volume = {offer_volume}\norder book:\n {order_book}\n '
                                       f'offer price = {offer_price}')
+                                break
                         limit_disappeared = False
                         break
             else:
@@ -247,6 +248,7 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
                                 print(f'ATTENTION PLEASE!!!\ntruly consumed volume = {truly_consumed_volume}\n'
                                       f'offer volume = {offer_volume}\norder book:\n {order_book}\n '
                                       f'offer price = {offer_price}')
+                                break
                         limit_disappeared = False
                         break
         except queue.Empty:
