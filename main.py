@@ -122,7 +122,7 @@ def abuse_pairs(q: Queue, wasted_pairs: Queue):
         threads[-1].start()
 
         if len(threading.enumerate()) > 100:
-            for i in range(50):
+            for i in tqdm(range(50), desc='waiting for old threads to finish'):
                 threads[i].join()
 
             threads = threads[49:]
@@ -181,6 +181,7 @@ def abuse_pair(pair: str, offer_kind: str, offer_price: float, wasted_pairs: Que
     twm.stop_socket(stream_name)
     wasted_pairs.put(pair)
     print(f'abuse pair completed tracking for {pair} successfully')
+    return 1
 
 
 def waiting_for_touch(symbol: str, offer_kind: str, offer_price: float, volume: float, refresh_time: int,
