@@ -116,18 +116,21 @@ def abuse_pairs(q: Queue, wasted_pairs: Queue):
     while True:
         symbol, offer_kind, offer_price = q.get()
         print(f'abuse pairs got {symbol}\n')
+        with Thread as t:
+            threads.append(t(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs)))
+            t.start()
 
-        threads.append(Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs)))
-        threads[-1].start()
-
-        for i in range(len(threads)-1, -1, -1):
-            try:
-                if threads[i].is_alive():
-                    continue
-                threads[i].join()
-                threads.pop(i)
-            except IndexError:
-                print(f'\nindex error in threads:\nthreads length: {len(threads)}\nindex: {i}\n')
+        # threads.append(Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs)))
+        # threads[-1].start()
+        #
+        # for i in range(len(threads)-1, -1, -1):
+        #     try:
+        #         if threads[i].is_alive():
+        #             continue
+        #         threads[i].join()
+        #         threads.pop(i)
+        #     except IndexError:
+        #         print(f'\nindex error in threads:\nthreads length: {len(threads)}\nindex: {i}\n')
 
 
 def abuse_pair(pair: str, offer_kind: str, offer_price: float, wasted_pairs: Queue):
@@ -227,7 +230,7 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
                         if offer_volume == -1:
                             offer_volume = float(bid[1])
                         if float(bid[1]) < 0.2 * offer_volume:
-                            if truly_consumed_volume > 0.7 * offer_volume:
+                            if truly_consumed_volume > 0.5 * offer_volume:
                                 return True
                             else:
                                 print(f'ATTENTION PLEASE!!!\ntruly consumed volume = {truly_consumed_volume}\n'
@@ -242,7 +245,7 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
                         if offer_volume == -1:
                             offer_volume = float(ask[1])
                         if float(ask[1]) < 0.2 * offer_volume:
-                            if truly_consumed_volume > 0.7 * offer_volume:
+                            if truly_consumed_volume > 0.5 * offer_volume:
                                 return True
                             else:
                                 print(f'ATTENTION PLEASE!!!\ntruly consumed volume = {truly_consumed_volume}\n'
@@ -306,6 +309,7 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int
     with open(filename, 'a') as file:
         note.to_csv(file, header=True, index=False)
         print(f'record created in {filename}')
+        file.close()
 
 
 def main():
