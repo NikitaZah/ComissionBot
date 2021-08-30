@@ -1,4 +1,5 @@
 import queue
+import threading
 
 from binance import Client, ThreadedWebsocketManager
 from binance.exceptions import BinanceAPIException
@@ -116,13 +117,16 @@ def abuse_pairs(q: Queue, wasted_pairs: Queue):
     while True:
         symbol, offer_kind, offer_price = q.get()
         print(f'abuse pairs got {symbol}\n')
-        with Thread as t:
-            threads.append(t(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs)))
-            t.start()
 
-        # threads.append(Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs)))
-        # threads[-1].start()
-        #
+        threads.append(Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs)))
+        threads[-1].start()
+
+        if len(threading.enumerate()) > 100:
+            for i in range(50):
+                threads[i].join()
+
+            threads = threads[49:]
+
         # for i in range(len(threads)-1, -1, -1):
         #     try:
         #         if threads[i].is_alive():
