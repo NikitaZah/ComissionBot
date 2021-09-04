@@ -117,7 +117,7 @@ def abuse_pairs(q: Queue, wasted_pairs: Queue):
         symbol, offer_kind, offer_price = q.get()
         print(f'abuse pairs got {symbol}\n')
 
-        t = Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs))
+        t = Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs), daemon=True)
         t.start()
         print(f'currently active threads: {threading.active_count()}\n')
 
