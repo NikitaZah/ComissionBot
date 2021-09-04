@@ -114,12 +114,15 @@ def extract_pairs(q: Queue, wasted_pairs: Queue):
 
 def abuse_pairs(q: Queue, wasted_pairs: Queue):
     while True:
-        symbol, offer_kind, offer_price = q.get()
-        print(f'abuse pairs got {symbol}\n')
+        try:
+            symbol, offer_kind, offer_price = q.get()
+            print(f'abuse pairs got {symbol}\n')
 
-        t = Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs), daemon=True)
-        t.start()
-        print(f'currently active threads: {threading.active_count()}\n')
+            t = Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs), daemon=True)
+            t.start()
+            print(f'currently active threads: {threading.active_count()}\n')
+        except:
+            raise
 
 
 def abuse_pair(pair: str, offer_kind: str, offer_price: float, wasted_pairs: Queue):
@@ -129,7 +132,7 @@ def abuse_pair(pair: str, offer_kind: str, offer_price: float, wasted_pairs: Que
         return 0
     refresh_time = client.get_server_time()['serverTime']
 
-    twm = ThreadedWebsocketManager()
+    twm = ThreadedWebsocketManager(api_key, api_secret)
     twm.start()
     order_book_socket = queue.LifoQueue()
     trades_socket = queue.Queue()
@@ -151,19 +154,19 @@ def abuse_pair(pair: str, offer_kind: str, offer_price: float, wasted_pairs: Que
     waited = waiting_for_touch(pair, offer_kind, offer_price, volume, refresh_time, order_book_socket, trades_socket)
     if not waited:
         print(f'\n{pair}: failed to wait the touch\n')
-        twm.stop_socket(stream_name)
+        twm.stop()
         wasted_pairs.put(pair)
         return -1
     print(f'\n{pair}: we got touch')
     waited = waiting_limit_destruction(offer_kind, offer_price, order_book_socket, trades_socket)
     if not waited:
         print(f'\n{pair}: failed to wait limit destruction\n')
-        twm.stop_socket(stream_name)
+        twm.stop()
         wasted_pairs.put(pair)
         return -2
     print(f'{pair}: destruction waited!\ntrades queue size before starting track: {trades_socket.qsize()}')
     track(pair, offer_kind, offer_price, trades_socket.qsize(), trades_socket)
-    twm.stop_socket(stream_name)
+    twm.stop()
     wasted_pairs.put(pair)
     print(f'abuse pair completed tracking for {pair} successfully')
     return 1
@@ -317,7 +320,7 @@ def main():
 
             p1.join()
             p2.join()
-        except ProcessError as err:
+        except Exception as err:
             print(f'\nPROCESS ERROR OCCURRED: {err}\n')
             if p1.is_alive():
                 p1.terminate()
