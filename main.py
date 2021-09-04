@@ -70,6 +70,8 @@ def get_large_limit(symbol: str, volume: float, percentage: float):
 def extract_pairs(q: Queue, wasted_pairs: Queue):
     pairs = data.pairs
     pairs_in_work = []
+    for pair in pairs:
+        leverage = client.futures_change_leverage(symbol=pair, leverage=10)
     while True:
         for pair in tqdm(pairs, desc=f'checking'):
             if pair in pairs_in_work:
@@ -263,11 +265,21 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
 
 def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int, trades_socket: queue.Queue):
     prices = []
-    # leverage = client.futures_change_leverage(symbol=symbol, leverage=1, )
-    # order = client.futures_create_order()
+
     if offer_kind == 'ask':
         TP = offer_price + 0.005 * offer_price
-        SL = offer_price - 0.0015 * offer_price
+        SL = offer_price - 0.001 * offer_price
+
+        try:
+
+            order = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, type=Client.FUTURE_ORDER_TYPE_MARKET,
+                                                quoteOrderQty=50)
+            order_TP = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, price=TP, stopPrice=SL,
+                                                   type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT, closePosition=True)
+            order_SL = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, price=SL, stopPrice=TP,
+                                                   type=Client.FUTURE_ORDER_TYPE_STOP_MARKET, closePosition=True)
+        except Exception as err:
+            print(f'cannot place orders. Error: {err}\n')
 
         def take_profit(trade_price: float):
             return trade_price > TP
@@ -276,7 +288,17 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int
             return trade_price < SL
     else:
         TP = offer_price - 0.005 * offer_price
-        SL = offer_price + 0.0015 * offer_price
+        SL = offer_price + 0.001 * offer_price
+
+        try:
+            order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, type=Client.FUTURE_ORDER_TYPE_MARKET,
+                                                quoteOrderQty=10)
+            order_TP = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, price=TP, stopPrice=SL,
+                                                   type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT_MARKET, closePosition=True)
+            order_SL = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, price=SL, stopPrice=TP,
+                                                   type=Client.FUTURE_ORDER_TYPE_STOP_MARKET, closePosition=True)
+        except Exception as err:
+            print(f'cannot place orders. Error: {err}\n')
 
         def take_profit(trade_price: float):
             return trade_price < TP
