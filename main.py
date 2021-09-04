@@ -5,7 +5,7 @@ from binance import Client, ThreadedWebsocketManager
 from binance.exceptions import BinanceAPIException
 from configparser import ConfigParser
 import data
-from multiprocessing import Process,  Queue
+from multiprocessing import Process, ProcessError,  Queue
 from threading import Thread
 from tqdm import tqdm
 import pandas as pd
@@ -128,15 +128,6 @@ def abuse_pairs(q: Queue, wasted_pairs: Queue):
                 threads = threads[49:]
             except IndexError:
                 threads = []
-
-        # for i in range(len(threads)-1, -1, -1):
-        #     try:
-        #         if threads[i].is_alive():
-        #             continue
-        #         threads[i].join()
-        #         threads.pop(i)
-        #     except IndexError:
-        #         print(f'\nindex error in threads:\nthreads length: {len(threads)}\nindex: {i}\n')
 
 
 def abuse_pair(pair: str, offer_kind: str, offer_price: float, wasted_pairs: Queue):
@@ -322,14 +313,23 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int
 def main():
     q = Queue()
     w = Queue()
-    p1 = Process(target=extract_pairs, args=(q, w), daemon=True)
-    p2 = Process(target=abuse_pairs, args=(q, w), daemon=True)
 
-    p1.start()
-    p2.start()
+    while True:
+        p1 = Process(target=extract_pairs, args=(q, w), daemon=True)
+        p2 = Process(target=abuse_pairs, args=(q, w), daemon=True)
+        try:
+            p1.start()
+            p2.start()
 
-    p1.join()
-    p2.join()
+            p1.join()
+            p2.join()
+        except ProcessError as err:
+            print(f'\nPROCESS ERROR OCCURRED: {err}\n')
+            p1.terminate()
+            p2.terminate()
+            continue
+
+
 
 
 if __name__ == "__main__":
