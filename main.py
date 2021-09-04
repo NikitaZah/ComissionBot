@@ -113,21 +113,13 @@ def extract_pairs(q: Queue, wasted_pairs: Queue):
 
 
 def abuse_pairs(q: Queue, wasted_pairs: Queue):
-    threads = []
     while True:
         symbol, offer_kind, offer_price = q.get()
         print(f'abuse pairs got {symbol}\n')
 
-        threads.append(Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs)))
-        threads[-1].start()
-
-        if len(threads) > 100:
-            try:
-                for i in tqdm(range(50), desc='waiting for old threads to finish'):
-                    threads[i].join()
-                threads = threads[49:]
-            except IndexError:
-                threads = []
+        t = Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs))
+        t.start()
+        print(f'currently active threads: {threading.active_count()}\n')
 
 
 def abuse_pair(pair: str, offer_kind: str, offer_price: float, wasted_pairs: Queue):
@@ -228,7 +220,7 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
                         if offer_volume == -1:
                             offer_volume = float(bid[1])
                         if float(bid[1]) < 0.2 * offer_volume:
-                            if truly_consumed_volume > 0.5 * offer_volume:
+                            if truly_consumed_volume > 0.7 * offer_volume:
                                 return True
                             else:
                                 print(f'ATTENTION PLEASE!!!\ntruly consumed volume = {truly_consumed_volume}\n'
@@ -243,7 +235,7 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
                         if offer_volume == -1:
                             offer_volume = float(ask[1])
                         if float(ask[1]) < 0.2 * offer_volume:
-                            if truly_consumed_volume > 0.5 * offer_volume:
+                            if truly_consumed_volume > 0.7 * offer_volume:
                                 return True
                             else:
                                 print(f'ATTENTION PLEASE!!!\ntruly consumed volume = {truly_consumed_volume}\n'
@@ -268,6 +260,8 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
 
 def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int, trades_socket: queue.Queue):
     prices = []
+    # leverage = client.futures_change_leverage(symbol=symbol, leverage=1, )
+    # order = client.futures_create_order()
     if offer_kind == 'ask':
         TP = offer_price + 0.005 * offer_price
         SL = offer_price - 0.0015 * offer_price
@@ -325,11 +319,11 @@ def main():
             p2.join()
         except ProcessError as err:
             print(f'\nPROCESS ERROR OCCURRED: {err}\n')
-            p1.terminate()
-            p2.terminate()
+            if p1.is_alive():
+                p1.terminate()
+            if p2.is_alive():
+                p2.terminate()
             continue
-
-
 
 
 if __name__ == "__main__":
