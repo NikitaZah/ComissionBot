@@ -273,7 +273,7 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int
         try:
 
             order = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, type=Client.FUTURE_ORDER_TYPE_MARKET,
-                                                quoteOrderQty=50)
+                                                quoteOrderQty=30)
             order_TP = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, price=TP, stopPrice=SL,
                                                    type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT, closePosition=True)
             order_SL = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, price=SL, stopPrice=TP,
@@ -292,7 +292,7 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int
 
         try:
             order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, type=Client.FUTURE_ORDER_TYPE_MARKET,
-                                                quoteOrderQty=10)
+                                                quoteOrderQty=30)
             order_TP = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, price=TP, stopPrice=SL,
                                                    type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT_MARKET, closePosition=True)
             order_SL = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, price=SL, stopPrice=TP,
