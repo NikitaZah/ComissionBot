@@ -76,7 +76,7 @@ def extract_pairs(q: Queue, wasted_pairs: Queue):
     pairs = data.pairs
     pairs_in_work = []
     for pair in pairs:
-        lev = client.futures_change_leverage(symbol=pair, leverage=10)
+        lev = client.futures_change_leverage(symbol=pair, leverage=leverage)
     while True:
         for pair in tqdm(pairs, desc=f'checking'):
             if pair in pairs_in_work:
