@@ -240,7 +240,7 @@ def waiting_limit_destruction(offer_kind: str, offer_price: float, order_book_so
                         if offer_volume == -1:
                             offer_volume = float(ask[1])
                         if float(ask[1]) < 0.2 * offer_volume:
-                            if truly_consumed_volume > 0.7 * offer_volume:
+                            if truly_consumed_volume > 0.6 * offer_volume:
                                 return True
                             else:
                                 print(f'ATTENTION PLEASE!!!\ntruly consumed volume = {truly_consumed_volume}\n'
@@ -270,16 +270,16 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int
         TP = offer_price + 0.005 * offer_price
         SL = offer_price - 0.001 * offer_price
 
-        try:
-
-            order = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, type=Client.FUTURE_ORDER_TYPE_MARKET,
-                                                quoteOrderQty=30)
-            order_TP = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, price=TP, stopPrice=SL,
-                                                   type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT, closePosition=True)
-            order_SL = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, price=SL, stopPrice=TP,
-                                                   type=Client.FUTURE_ORDER_TYPE_STOP_MARKET, closePosition=True)
-        except Exception as err:
-            print(f'cannot place orders. Error: {err}\n')
+        # try:
+        #
+        #     order = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, type=Client.FUTURE_ORDER_TYPE_MARKET,
+        #                                         quoteOrderQty=30)
+        #     order_TP = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, price=TP, stopPrice=SL,
+        #                                            type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT, closePosition=True)
+        #     order_SL = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, price=SL, stopPrice=TP,
+        #                                            type=Client.FUTURE_ORDER_TYPE_STOP, closePosition=True)
+        # except Exception as err:
+        #     print(f'cannot place orders. Error: {err}\n')
 
         def take_profit(trade_price: float):
             return trade_price > TP
@@ -290,15 +290,15 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_lost_num: int
         TP = offer_price - 0.005 * offer_price
         SL = offer_price + 0.001 * offer_price
 
-        try:
-            order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, type=Client.FUTURE_ORDER_TYPE_MARKET,
-                                                quoteOrderQty=30)
-            order_TP = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, price=TP, stopPrice=SL,
-                                                   type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT_MARKET, closePosition=True)
-            order_SL = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, price=SL, stopPrice=TP,
-                                                   type=Client.FUTURE_ORDER_TYPE_STOP_MARKET, closePosition=True)
-        except Exception as err:
-            print(f'cannot place orders. Error: {err}\n')
+        # try:
+        #     order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, type=Client.FUTURE_ORDER_TYPE_MARKET,
+        #                                         quoteOrderQty=30)
+        #     order_TP = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, price=TP, stopPrice=SL,
+        #                                            type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT_MARKET, closePosition=True)
+        #     order_SL = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, price=SL, stopPrice=TP,
+        #                                            type=Client.FUTURE_ORDER_TYPE_STOP_MARKET, closePosition=True)
+        # except Exception as err:
+        #     print(f'cannot place orders. Error: {err}\n')
 
         def take_profit(trade_price: float):
             return trade_price < TP
