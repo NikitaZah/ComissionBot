@@ -304,10 +304,10 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_socket: queue
                 print(f'{symbol}: ATTENTION! Cannot place stop loss!')
 
     else:
-        TP = round_step_size(offer_price - 0.005 * offer_price, data.data['PRICE_FILTER'])
-        TP_stop = round_step_size(offer_price - 0.0049 * offer_price, data.data['PRICE_FILTER'])
-        SL = round_step_size(offer_price + 0.001 * offer_price, data.data['PRICE_FILTER'])
-        SL_stop = round_step_size(offer_price + 0.0009 * offer_price, data.data['PRICE_FILTER'])
+        TP = round_step_size(offer_price - 0.005 * offer_price, data.data[symbol]['PRICE_FILTER'])
+        TP_stop = round_step_size(offer_price - 0.0049 * offer_price, data.data[symbol]['PRICE_FILTER'])
+        SL = round_step_size(offer_price + 0.001 * offer_price, data.data[symbol]['PRICE_FILTER'])
+        SL_stop = round_step_size(offer_price + 0.0009 * offer_price, data.data[symbol]['PRICE_FILTER'])
 
         for i in range(10):
             try:
