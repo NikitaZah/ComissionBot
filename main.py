@@ -172,7 +172,7 @@ def abuse_pair(pair: str, offer_kind: str, offer_price: float, wasted_pairs: Que
         wasted_pairs.put(pair)
         return -2
     print(f'{pair}: destruction waited!\ntrades queue size before starting track: {trades_socket.qsize()}')
-    track(pair, offer_kind, offer_price, trades_socket.qsize(), trades_socket)
+    track(pair, offer_kind, offer_price, trades_socket)
     twm.stop()
     wasted_pairs.put(pair)
     print(f'abuse pair completed tracking for {pair} successfully')
