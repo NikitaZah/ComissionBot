@@ -128,7 +128,8 @@ def abuse_pairs(q: Queue, wasted_pairs: Queue):
             t = Thread(target=abuse_pair, args=(symbol, offer_kind, offer_price, wasted_pairs), daemon=True)
             t.start()
             print(f'currently active threads: {threading.active_count()}\n')
-        except:
+        except Exception as err:
+            print(f'got exception in abuse pairs: {err}\n')
             raise
 
 
