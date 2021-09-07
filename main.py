@@ -2,7 +2,8 @@ import queue
 import threading
 import time
 
-from binance import Client, ThreadedWebsocketManager
+from binance.client import Client
+from binance.streams import ThreadedWebsocketManager
 from binance.exceptions import BinanceAPIException
 from binance.helpers import round_step_size
 from configparser import ConfigParser
