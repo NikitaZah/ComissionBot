@@ -28,6 +28,29 @@ deal_amount = 500
 leverage = 10
 
 
+def chose_pairs():
+    chosen_pairs = []
+    while True:
+        try:
+            ticker = client.futures_ticker()
+            break
+        except Exception as err:
+            print(f'cant get coins info: {err}')
+
+    for coin in ticker:
+        if abs(float(coin['priceChangePercent'])) >= 5 and float(coin['quoteVolume']) > 99999999 and coin['symbol'].endswith('USDT'):
+            chosen_pairs.append(coin['symbol'])
+
+    try:
+        chosen_pairs.remove('BTCUSDT')
+        chosen_pairs.remove('ETHUSDT')
+        chosen_pairs.remove('LINKUSDT')
+    except ValueError:
+        pass
+    print(f'list len = {len(chosen_pairs)}\npairs:\n{chosen_pairs}')
+    return chosen_pairs
+
+
 def get_volume(symbol: str, minutes: int):
     try:
         candles = client.futures_klines(symbol=symbol, interval='1m', limit=minutes)
@@ -80,7 +103,8 @@ def get_large_limit(symbol: str, volume: float, percentage: float):
 
 
 def extract_pairs(q: Queue, wasted_pairs: Queue):
-    pairs = list(set(data.dynamic_pairs).union(set(data.stable_pairs)))
+    dynamic_pairs = chose_pairs()
+    pairs = list(set(dynamic_pairs).union(set(data.stable_pairs)))
     pairs_in_work = []
     for pair in pairs:
         lev = client.futures_change_leverage(symbol=pair, leverage=leverage)
