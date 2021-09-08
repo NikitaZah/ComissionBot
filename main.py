@@ -13,6 +13,8 @@ from threading import Thread
 from tqdm import tqdm
 import pandas as pd
 
+from datetime import datetime
+
 config = ConfigParser()
 config.read_file(open('config.cfg'))
 api_key = config.get('BINANCE', 'API_KEY')
@@ -33,8 +35,12 @@ def get_volume(symbol: str, minutes: int):
         print(f'error during getting candles for {symbol}:\n{err.message}')
         return -1
     volume = 0
+    volume_dollars = 0
     for candle in candles:
         volume += float(candle[5])  # candle volume
+        volume_dollars += float(candle[7])
+    if volume_dollars <= 500000:
+        return -2
     return volume
 
 
@@ -63,18 +69,18 @@ def get_large_limit(symbol: str, volume: float, percentage: float):
 
     ask, bid = (0, 0), (0, 0)
     for order in order_book['bids']:
-        if float(order[1]) > volume * percentage:   # QTY > V * %
+        if float(order[1]) > volume * percentage and float(order[0])*float(order[1]) >= 100000:   # QTY > V * %
             bid = float(order[0]), float(order[1])
             break
     for order in order_book['asks']:
-        if float(order[1]) > volume * percentage:
+        if float(order[1]) > volume * percentage and float(order[0])*float(order[1]) >= 100000:
             ask = float(order[0]), float(order[1])
             break
     return bid, ask
 
 
 def extract_pairs(q: Queue, wasted_pairs: Queue):
-    pairs = data.pairs
+    pairs = list(set(data.dynamic_pairs).union(set(data.stable_pairs)))
     pairs_in_work = []
     for pair in pairs:
         lev = client.futures_change_leverage(symbol=pair, leverage=leverage)
@@ -276,10 +282,8 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_socket: queue
     qty = round_step_size(deal_amount*leverage/offer_price, data.data[symbol]['MARKET_LOT_SIZE'])
 
     if offer_kind == 'ask':
-        TP = round_step_size(offer_price + 0.005 * offer_price, data.data['PRICE_FILTER'])
-        TP_stop = round_step_size(offer_price + 0.0049 * offer_price, data.data['PRICE_FILTER'])
+        TP = round_step_size(offer_price + 0.003 * offer_price, data.data['PRICE_FILTER'])
         SL = round_step_size(offer_price - 0.001 * offer_price, data.data['PRICE_FILTER'])
-        SL_stop = round_step_size(offer_price - 0.0009 * offer_price, data.data['PRICE_FILTER'])
 
         for i in range(10):
             try:
@@ -288,28 +292,27 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_socket: queue
                 break
             except Exception as err:
                 print(f'cannot place market order. Error: {err}\n')
-                time.sleep(0.2)
                 if i == 9:
                     return False
         while True:
             try:
-                tp_order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, stopPrice=TP_stop, price=TP,
-                                                       type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT, quantity=qty)
+                trailing_order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, quantity=qty,
+                                                             activationPrice=TP, callbackRate=0.2,
+                                                             type=Client.FUTURE_ORDER_TYPE_TRAILING_STOP)
                 break
             except Exception as err:
-                print(f'{symbol}: ATTENTION! Cannot place take profit!')
+                print(f'{symbol}: ATTENTION! Cannot place trailing stop!')
         while True:
             try:
-                sl_order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, stopPrice=SL_stop, price=SL,
-                                                   type=Client.FUTURE_ORDER_TYPE_STOP, quantity=qty)
+                sl_order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, stopPrice=SL,
+                                                       closePosition=True, type=Client.FUTURE_ORDER_TYPE_STOP_MARKET)
+                break
             except Exception as err:
                 print(f'{symbol}: ATTENTION! Cannot place stop loss!')
 
     else:
-        TP = round_step_size(offer_price - 0.005 * offer_price, data.data[symbol]['PRICE_FILTER'])
-        TP_stop = round_step_size(offer_price - 0.004 * offer_price, data.data[symbol]['PRICE_FILTER'])
+        TP = round_step_size(offer_price - 0.003 * offer_price, data.data[symbol]['PRICE_FILTER'])
         SL = round_step_size(offer_price + 0.001 * offer_price, data.data[symbol]['PRICE_FILTER'])
-        SL_stop = round_step_size(offer_price + 0.0009 * offer_price, data.data[symbol]['PRICE_FILTER'])
 
         for i in range(10):
             try:
@@ -318,35 +321,37 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_socket: queue
                 break
             except Exception as err:
                 print(f'cannot place market order. Error: {err}\n')
-                time.sleep(0.2)
                 if i == 9:
                     return False
         while True:
             try:
-                tp_order = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, stopPrice=TP_stop,
-                                                       price=TP,
-                                                       type=Client.FUTURE_ORDER_TYPE_TAKE_PROFIT, quantity=qty)
+                trailing_order = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, quantity=qty,
+                                                             activationPrice=TP, callbackRate=0.2,
+                                                             type=Client.FUTURE_ORDER_TYPE_TRAILING_STOP)
                 break
             except Exception as err:
-                print(f'ATTENTION! Cannot place take profit! Error:\n{err}')
+                print(f'ATTENTION! Cannot place trailing stop! Error:\n{err}')
         while True:
             try:
-                sl_order = client.futures_create_order(symbol=symbol, side=Client.SIDE_BUY, stopPrice=SL_stop,
-                                                       price=SL,
-                                                       type=Client.FUTURE_ORDER_TYPE_STOP, quantity=qty)
+                sl_order = client.futures_create_order(symbol=symbol, side=Client.SIDE_SELL, stopPrice=SL,
+                                                       closePosition=True, type=Client.FUTURE_ORDER_TYPE_STOP_MARKET)
                 break
             except Exception as err:
                 print(f'ATTENTION! Cannot place stop loss! Error:\n{err}')
 
     while True:
         try:
-            trade = trades_socket.get()
-            prices.append(trade[0])
+            while True:
+                try:
+                    trade = trades_socket.get_nowait()
+                    prices.append(trade[0])
+                except queue.Empty:
+                    break
 
-            order_tp_status = client.futures_get_order(symbol=symbol, orderId=tp_order['orderId'])['status']
+            order_trailing_status = client.futures_get_order(symbol=symbol, orderId=trailing_order['orderId'])['status']
             order_sl_status = client.futures_get_order(symbol=symbol, orderId=sl_order['orderId'])['status']
 
-            if order_tp_status == 'FILLED':
+            if order_trailing_status == 'FILLED':
                 while True:
                     try:
                         close_order = client.futures_cancel_order(symbol=symbol, orderId=sl_order['orderId'])
@@ -358,16 +363,15 @@ def track(symbol: str, offer_kind: str, offer_price: float, trades_socket: queue
             if order_sl_status == 'FILLED':
                 while True:
                     try:
-                        close_order = client.futures_cancel_order(symbol=symbol, orderId=tp_order['orderId'])
+                        close_order = client.futures_cancel_order(symbol=symbol, orderId=trailing_order['orderId'])
                         break
                     except:
                         time.sleep(1)
                 result = 'SL'
                 break
 
-        except queue.Empty:
-            print('trades queue is empty during tracking')
-            continue
+        except Exception as err:
+            print(f'EXCEPTION IN TRACKING: {err}')
     final_price = client.futures_get_order(symbol=symbol, orderId=order['orderId'])['avgPrice']
 
     filename = 'data/' + symbol + '.csv'
