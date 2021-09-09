@@ -38,7 +38,7 @@ def chose_pairs():
             print(f'cant get coins info: {err}')
 
     for coin in ticker:
-        if abs(float(coin['priceChangePercent'])) >= 5 and float(coin['quoteVolume']) > 99999999 and coin['symbol'].endswith('USDT'):
+        if abs(float(coin['priceChangePercent'])) >= 5 and float(coin['quoteVolume']) > 99999999 and coin['symbol'].find('USDT') > 0:
             chosen_pairs.append(coin['symbol'])
 
     try:
